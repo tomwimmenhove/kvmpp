@@ -1,7 +1,8 @@
 #ifndef KVMPP_H
 #define KVMPP_H
 
-#include "memory"
+#include <linux/kvm.h>
+#include <memory>
 
 class kvm_exception : public std::exception
 {
