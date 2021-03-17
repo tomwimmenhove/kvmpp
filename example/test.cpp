@@ -2,7 +2,7 @@
 #include <iostream>
 #include <sys/mman.h>
 
-#include "kvmpp.h"
+#include "../src/kvmpp.h"
 
 #define CR0_PE 1u
 #define CR0_MP (1U << 1)
