@@ -75,7 +75,7 @@ void kvm_machine::set_user_memory_region(struct kvm_userspace_memory_region& mem
 	}
 }
 
-kvm_vcpu kvm_machine::create_vcpu()
+std::unique_ptr<kvm_vcpu> kvm_machine::create_vcpu()
 {
 	int vcpu_fd = ioctl(fd, KVM_CREATE_VCPU, 0);
 	if (vcpu_fd < 0)
@@ -83,7 +83,7 @@ kvm_vcpu kvm_machine::create_vcpu()
 		throw std::system_error(errno, std::generic_category());
 	}
 
-	return kvm_vcpu(vcpu_fd);
+	return std::make_unique<kvm_vcpu>(vcpu_fd);
 }
 
 kvm_machine::~kvm_machine()
@@ -144,7 +144,7 @@ kvm::kvm()
 	std::cout << "KVM fd: " << fd << '\n';
 }
 
-kvm_machine kvm::create_vm()
+std::unique_ptr<kvm_machine> kvm::create_vm()
 {
 	int vm_fd = ioctl(fd, KVM_CREATE_VM, 0);
 	if (vm_fd < 0)
@@ -152,7 +152,7 @@ kvm_machine kvm::create_vm()
 		throw std::system_error(errno, std::generic_category());
 	}
 
-	return kvm_machine(vm_fd);
+	return std::make_unique<kvm_machine>(vm_fd);
 }
 
 int kvm::get_mmap_size()
@@ -176,7 +176,7 @@ int main()
 	auto kvm = kvm::get_instance();
 
 	auto machine = kvm->create_vm();
-	auto vcpu = machine.create_vcpu();
+	auto vcpu = machine->create_vcpu();
 
 	kvm->destroy();
 

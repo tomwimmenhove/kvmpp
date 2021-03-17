@@ -44,7 +44,7 @@ public:
 	void set_user_memory_region(
 			__u32 slot, __u32 flags, __u64 guest_phys_addr, __u64 memory_size, __u64 userspace_addr);
 	void set_user_memory_region(struct kvm_userspace_memory_region& memreg);
-	kvm_vcpu create_vcpu();
+	std::unique_ptr<kvm_vcpu> create_vcpu();
 	virtual ~kvm_machine();
 
 private:
@@ -59,7 +59,7 @@ public:
 	void destroy();
 	virtual ~kvm();
 
-	kvm_machine create_vm();
+	std::unique_ptr<kvm_machine> create_vm();
 	int get_mmap_size();
 
 private:
