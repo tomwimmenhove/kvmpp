@@ -3,52 +3,7 @@
 #include <sys/mman.h>
 
 #include "../src/kvmpp.h"
-
-#define CR0_PE 1u
-#define CR0_MP (1U << 1)
-#define CR0_EM (1U << 2)
-#define CR0_TS (1U << 3)
-#define CR0_ET (1U << 4)
-#define CR0_NE (1U << 5)
-#define CR0_WP (1U << 16)
-#define CR0_AM (1U << 18)
-#define CR0_NW (1U << 29)
-#define CR0_CD (1U << 30)
-#define CR0_PG (1U << 31)
-#define CR4_VME 1
-#define CR4_PVI (1U << 1)
-#define CR4_TSD (1U << 2)
-#define CR4_DE (1U << 3)
-#define CR4_PSE (1U << 4)
-#define CR4_PAE (1U << 5)
-#define CR4_MCE (1U << 6)
-#define CR4_PGE (1U << 7)
-#define CR4_PCE (1U << 8)
-#define CR4_OSFXSR (1U << 8)
-#define CR4_OSXMMEXCPT (1U << 10)
-#define CR4_UMIP (1U << 11)
-#define CR4_VMXE (1U << 13)
-#define CR4_SMXE (1U << 14)
-#define CR4_FSGSBASE (1U << 16)
-#define CR4_PCIDE (1U << 17)
-#define CR4_OSXSAVE (1U << 18)
-#define CR4_SMEP (1U << 20)
-#define CR4_SMAP (1U << 21)
-#define EFER_SCE 1
-#define EFER_LME (1U << 8)
-#define EFER_LMA (1U << 10)
-#define EFER_NXE (1U << 11)
-#define PDE32_PRESENT 1
-#define PDE32_RW (1U << 1)
-#define PDE32_USER (1U << 2)
-#define PDE32_PS (1U << 7)
-#define PDE64_PRESENT 1
-#define PDE64_RW (1U << 1)
-#define PDE64_USER (1U << 2)
-#define PDE64_ACCESSED (1U << 5)
-#define PDE64_DIRTY (1U << 6)
-#define PDE64_PS (1U << 7)
-#define PDE64_G (1U << 8)
+#include "cpudefs.h"
 
 static void setup_64bit_code_segment(struct kvm_sregs *sregs)
 {
@@ -100,11 +55,13 @@ static void setup_long_mode(void *mem_p, struct kvm_sregs *sregs)
 
 int main()
 {
+	/* Get the KVM instance */
 	auto kvm = kvm::get_instance();
 
+	/* Create a virtual machine instance */
 	auto machine = kvm->create_vm();
 
-	/* Put some memory in the machine */
+	/* Allocate memory for the machine */
 	size_t mem_size = 2048 * 1024;
 	void* mem = mmap(NULL, mem_size, PROT_READ | PROT_WRITE,
 			MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
@@ -115,32 +72,43 @@ int main()
 
 	madvise(mem, mem_size, MADV_MERGEABLE);
 
+	/* Stick it in slot 0 */
 	machine->set_user_memory_region(0, 0, 0, mem_size, mem);
 
-	/* Setup the VCPU */
+
+	/* Create a virtual CPU instance on the virtual machine */
 	auto vcpu = machine->create_vcpu();
 
+	/* Setup the special registers */
 	struct kvm_sregs sregs;
-	struct kvm_regs regs;
-
 	vcpu->get_sregs(sregs);
 	setup_long_mode(mem, &sregs);
 	vcpu->set_sregs(sregs);
 
+	/* Set up the general registers */
+	struct kvm_regs regs;
 	memset(&regs, 0, sizeof(regs));
 	/* Clear all FLAGS bits, except bit 1 which is always set. */
 	regs.rflags = 2;
-	regs.rip = 0;
+	regs.rip = 42;
 	/* Create stack at top of 2 MB page and grow down. */
 	regs.rsp = 2 << 20;
-
 	vcpu->set_regs(regs);
 
-	*((unsigned char*) mem) = 0xf4; // HLT
+	/* Write a halt instruction to where the instruction pointers points */
+	*((unsigned char*) mem + regs.rip) = 0xf4;
 
+	/* Run the CPU */
 	auto run = vcpu->run();
 
-	std::cout << "Reason: " << run->exit_reason << '\n';
+	if (run->exit_reason != KVM_EXIT_HLT)
+	{
+		std::cout << "VCPU exited with reason: " << run->exit_reason << ", expected " << KVM_EXIT_HLT << '\n';
+	}
+	else
+	{
+		std::cout << "Success!\n";
+	}
 
 	kvm->destroy();
 
