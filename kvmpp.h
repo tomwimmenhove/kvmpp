@@ -1,6 +1,8 @@
 #ifndef KVMPP_H
 #define KVMPP_H
 
+#include "memory"
+
 class kvm_exception : public std::exception
 {
 public:
@@ -23,15 +25,13 @@ class kvm_machine;
 class kvm_vcpu
 {
 public:
-	kvm_vcpu(kvm* kvm_inst, kvm_machine* kvm_machine_inst, int fd);
+	kvm_vcpu(int fd);
 
 	virtual ~kvm_vcpu();
 
 private:
 	struct kvm_run* get_kvm_run();
 
-	kvm* kvm_inst;
-	kvm_machine* kvm_machine_inst;
 	int fd;
 	struct kvm_run* run;
 };
@@ -39,7 +39,7 @@ private:
 class kvm_machine
 {
 public:
-	kvm_machine(kvm* kvm_inst, int fd);
+	kvm_machine(int fd);
 
 	void set_user_memory_region(
 			__u32 slot, __u32 flags, __u64 guest_phys_addr, __u64 memory_size, __u64 userspace_addr);
@@ -48,22 +48,25 @@ public:
 	virtual ~kvm_machine();
 
 private:
-	kvm* kvm_inst;
 	int fd;
 };
 
 class kvm
 {
 public:
-	kvm();
+	static kvm* get_instance();
+
+	void destroy();
+	virtual ~kvm();
 
 	kvm_machine create_vm();
 	int get_mmap_size();
-	virtual ~kvm();
 
 private:
 	int get_api_version();
+	kvm();
 
+	static kvm* instance;
 	int fd;
 };
 

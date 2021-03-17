@@ -14,8 +14,8 @@
 
 #include "kvmpp.h"
 
-kvm_vcpu::kvm_vcpu(kvm* kvm_inst, kvm_machine* kvm_machine_inst, int fd)
-	: kvm_inst(kvm_inst), kvm_machine_inst(kvm_machine_inst), fd(fd)
+kvm_vcpu::kvm_vcpu(int fd)
+	: fd(fd)
 {
 	std::cout << "VCPU fd: " << fd << '\n';
 	run = get_kvm_run();
@@ -28,7 +28,7 @@ kvm_vcpu::~kvm_vcpu()
 
 struct kvm_run* kvm_vcpu::get_kvm_run()
 {
-	int size = kvm_inst->get_mmap_size();
+	int size = kvm::get_instance()->get_mmap_size();
 
 	std::cout << "size: " << size << '\n';
 
@@ -42,8 +42,8 @@ struct kvm_run* kvm_vcpu::get_kvm_run()
 	return p;
 }
 
-kvm_machine::kvm_machine(kvm* kvm_inst, int fd)
-	: fd(fd), kvm_inst(kvm_inst)
+kvm_machine::kvm_machine(int fd)
+	: fd(fd)
 {
 	if (ioctl(fd, KVM_SET_TSS_ADDR, 0xfffbd000) < 0)
 	{
@@ -83,12 +83,45 @@ kvm_vcpu kvm_machine::create_vcpu()
 		throw std::system_error(errno, std::generic_category());
 	}
 
-	return kvm_vcpu(kvm_inst, this, vcpu_fd);
+	return kvm_vcpu(vcpu_fd);
 }
 
 kvm_machine::~kvm_machine()
 {
 	close(fd);
+}
+
+int kvm::get_api_version()
+{
+	int api_ver = ioctl(fd, KVM_GET_API_VERSION, 0);
+	if (api_ver < 0)
+	{
+		throw std::system_error(errno, std::generic_category());
+	}
+
+	return api_ver;
+}
+
+kvm* kvm::instance = nullptr;
+kvm* kvm::get_instance()
+{
+	if (instance == nullptr)
+	{
+		instance = new kvm();
+	}
+
+	return instance;
+}
+
+void kvm::destroy()
+{
+	if (instance == nullptr)
+	{
+		return;
+	}
+
+	delete instance;
+	instance = nullptr;
 }
 
 kvm::kvm()
@@ -119,7 +152,7 @@ kvm_machine kvm::create_vm()
 		throw std::system_error(errno, std::generic_category());
 	}
 
-	return kvm_machine(this, vm_fd);
+	return kvm_machine(vm_fd);
 }
 
 int kvm::get_mmap_size()
@@ -138,23 +171,14 @@ kvm::~kvm()
 	close(fd);
 }
 
-int kvm::get_api_version()
-{
-	int api_ver = ioctl(fd, KVM_GET_API_VERSION, 0);
-	if (api_ver < 0)
-	{
-		throw std::system_error(errno, std::generic_category());
-	}
-
-	return api_ver;
-}
-
 int main()
 {
-	kvm kvm;
+	auto kvm = kvm::get_instance();
 
-	auto machine = kvm.create_vm();
+	auto machine = kvm->create_vm();
 	auto vcpu = machine.create_vcpu();
+
+	kvm->destroy();
 
 	return 0;
 }
