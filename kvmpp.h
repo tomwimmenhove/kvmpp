@@ -29,11 +29,21 @@ public:
 
 	virtual ~kvm_vcpu();
 
+	struct kvm_regs get_regs();
+	void set_regs(struct kvm_regs& regs);
+	void get_regs(struct kvm_regs& regs);
+
+	struct kvm_sregs get_sregs();
+	void set_sregs(struct kvm_sregs& sregs);
+	void get_sregs(struct kvm_sregs& sregs);
+
+	struct kvm_run* run();
+
 private:
 	struct kvm_run* get_kvm_run();
 
 	int fd;
-	struct kvm_run* run;
+	struct kvm_run* run_mmap;
 };
 
 class kvm_machine
@@ -42,7 +52,7 @@ public:
 	kvm_machine(int fd);
 
 	void set_user_memory_region(
-			__u32 slot, __u32 flags, __u64 guest_phys_addr, __u64 memory_size, __u64 userspace_addr);
+			__u32 slot, __u32 flags, __u64 guest_phys_addr, __u64 memory_size, void* userspace_addr);
 	void set_user_memory_region(struct kvm_userspace_memory_region& memreg);
 	std::unique_ptr<kvm_vcpu> create_vcpu();
 	virtual ~kvm_machine();
