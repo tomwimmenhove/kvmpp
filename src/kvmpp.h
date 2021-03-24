@@ -38,6 +38,27 @@ public:
 	void set_sregs(struct kvm_sregs& sregs);
 	void get_sregs(struct kvm_sregs& sregs);
 
+	template<typename T>
+	T read_from_run(uint64_t offset)
+	{   
+		return *(T*) ((uintptr_t) run_mmap + run_mmap->io.data_offset);
+	}
+
+	uint32_t read_io_from_run()
+	{
+		switch (run_mmap->io.size)
+		{   
+			case sizeof(uint32_t):
+				return read_from_run<uint32_t>(run_mmap->io.data_offset);
+			case sizeof(uint16_t):
+				return read_from_run<uint16_t>(run_mmap->io.data_offset);
+			case sizeof(uint8_t):
+				return read_from_run<uint8_t>(run_mmap->io.data_offset);
+		}
+
+		throw std::invalid_argument("Invalid I/O size");
+	}
+
 	struct kvm_run* run();
 
 private:
