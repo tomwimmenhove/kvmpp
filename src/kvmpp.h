@@ -44,16 +44,17 @@ public:
 		return *(T*) ((uintptr_t) run_mmap + run_mmap->io.data_offset);
 	}
 
+	uint8_t read_io8_from_run() { return read_from_run<uint8_t>(run_mmap->io.data_offset); }
+	uint8_t read_io16_from_run() { return read_from_run<uint16_t>(run_mmap->io.data_offset); }
+	uint8_t read_io32_from_run() { return read_from_run<uint32_t>(run_mmap->io.data_offset); }
+
 	uint32_t read_io_from_run()
 	{
 		switch (run_mmap->io.size)
 		{   
-			case sizeof(uint32_t):
-				return read_from_run<uint32_t>(run_mmap->io.data_offset);
-			case sizeof(uint16_t):
-				return read_from_run<uint16_t>(run_mmap->io.data_offset);
-			case sizeof(uint8_t):
-				return read_from_run<uint8_t>(run_mmap->io.data_offset);
+			case sizeof(uint8_t): return read_io8_from_run();
+			case sizeof(uint16_t): return read_io16_from_run();
+			case sizeof(uint32_t): return read_io32_from_run();
 		}
 
 		throw std::invalid_argument("Invalid I/O size");
