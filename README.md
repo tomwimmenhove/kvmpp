@@ -5,7 +5,6 @@ A simple C++ wrapper for Linux's KVM API. Largely (especially the test.cpp examp
 ## Building and running the example
 ```
 git clone https://github.com/tomwimmenhove/kvmpp
-cd kvmpp/example
-g++ -o example ../src/kvmpp.cpp example.cpp
-./example
+cd kvmpp
+make example
 ```
