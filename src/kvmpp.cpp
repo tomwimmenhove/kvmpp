@@ -128,9 +128,9 @@ void kvm_machine::set_user_memory_region(struct kvm_userspace_memory_region& mem
 	}
 }
 
-std::unique_ptr<kvm_vcpu> kvm_machine::create_vcpu()
+std::unique_ptr<kvm_vcpu> kvm_machine::create_vcpu(int id)
 {
-	int vcpu_fd = ioctl(fd, KVM_CREATE_VCPU, 0);
+	int vcpu_fd = ioctl(fd, KVM_CREATE_VCPU, id);
 	if (vcpu_fd < 0)
 	{
 		throw std::system_error(errno, std::generic_category());

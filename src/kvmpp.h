@@ -77,7 +77,7 @@ public:
 	void set_user_memory_region(
 			__u32 slot, __u32 flags, __u64 guest_phys_addr, __u64 memory_size, void* userspace_addr);
 	void set_user_memory_region(struct kvm_userspace_memory_region& memreg);
-	std::unique_ptr<kvm_vcpu> create_vcpu();
+	std::unique_ptr<kvm_vcpu> create_vcpu(int id = 0);
 	virtual ~kvm_machine();
 
 private:
