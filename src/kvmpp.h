@@ -61,8 +61,8 @@ public:
 	}
 
 	uint8_t read_io8_from_run() { return read_from_run<uint8_t>(run_mmap->io.data_offset); }
-	uint8_t read_io16_from_run() { return read_from_run<uint16_t>(run_mmap->io.data_offset); }
-	uint8_t read_io32_from_run() { return read_from_run<uint32_t>(run_mmap->io.data_offset); }
+	uint16_t read_io16_from_run() { return read_from_run<uint16_t>(run_mmap->io.data_offset); }
+	uint32_t read_io32_from_run() { return read_from_run<uint32_t>(run_mmap->io.data_offset); }
 
 	uint32_t read_io_from_run()
 	{
@@ -71,6 +71,24 @@ public:
 			case sizeof(uint8_t): return read_io8_from_run();
 			case sizeof(uint16_t): return read_io16_from_run();
 			case sizeof(uint32_t): return read_io32_from_run();
+		}
+
+		throw std::invalid_argument("Invalid I/O size");
+	}
+
+	template<typename T>
+	void write_to_run(uint64_t offset, T data)
+	{
+		*(T*) ((uintptr_t) run_mmap + run_mmap->io.data_offset) = data;
+	}
+
+	void write_io_to_run(uint32_t data)
+	{
+		switch (run_mmap->io.size)
+		{   
+			case sizeof(uint8_t): return write_to_run<uint8_t>(run_mmap->io.data_offset, data);
+			case sizeof(uint16_t): return write_to_run<uint16_t>(run_mmap->io.data_offset, data);
+			case sizeof(uint32_t): return write_to_run<uint32_t>(run_mmap->io.data_offset, data);
 		}
 
 		throw std::invalid_argument("Invalid I/O size");
